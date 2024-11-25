@@ -422,7 +422,7 @@ if __name__ == '__main__':
 
     show_on_image = True
 
-    points = []
+    estimated_centres = []
 
     for match in circle_matches:
         circle1 = match[0]
@@ -456,11 +456,11 @@ if __name__ == '__main__':
         P_hat = np.append(P_hat, [1]) # convert into homogenous coordinate
         point = np.matmul(H0_cw, P_hat)[:-1]
 
-        points.append(point)
+        estimated_centres.append(point)
     
     if show_on_image:
         # Project 3D points onto reference VC and draw points onto image
-        for point in points:
+        for point in estimated_centres:
             P_L = np.matmul(H0_wc, np.append(point, [1]))[:-1]
             Z = P_L[2]
             p_L = f * (P_L / Z)
@@ -475,7 +475,7 @@ if __name__ == '__main__':
             cv2.imwrite('view0.png', image)
         
         # Project 3D points onto viewing VC and draw points onto image
-        for point in points:
+        for point in estimated_centres:
             P_R = np.matmul(H1_wc, np.append(point, [1]))[:-1]
             Z = P_R[2]
             p_R = f * (P_R / Z)
@@ -497,6 +497,49 @@ if __name__ == '__main__':
     '''
     ###################################
 
+    ground_truth_centres = np.array(GT_cents)[:,:3].tolist()
+
+    # Ground truth sphere centre point cloud (red)
+    pcd_GT_cents = o3d.geometry.PointCloud()
+    pcd_GT_cents.points = o3d.utility.Vector3dVector(ground_truth_centres)
+    pcd_GT_cents.paint_uniform_color([1., 0., 0.])
+
+    # Estimated sphere centre point cloud (green)
+    pcd_est_cents = o3d.geometry.PointCloud()
+    pcd_est_cents.points = o3d.utility.Vector3dVector(np.array(estimated_centres))
+    pcd_est_cents.paint_uniform_color([0., 1., 0.])
+
+    # Visualise both ground truth and estimated sphere centres
+    vis = o3d.visualization.Visualizer()
+    vis.create_window(width=640, height=480, left=0, top=0)
+    for m in [obj_meshes[0], pcd_GT_cents, pcd_est_cents]:
+        vis.add_geometry(m)
+    vis.run()
+    vis.destroy_window()
+
+    # Compute the errors (distances between estimated and ground truth centres)
+    distance_sum = 0
+    for est_centre in estimated_centres:
+        # The closest ground truth centre is considered to correspond with the estimated centre
+        smallest_distance = float('inf')
+        closest_gt = None
+        for gt_centre in ground_truth_centres:
+            distance = math.sqrt(np.sum(np.square(est_centre - gt_centre)))
+            if distance < smallest_distance:
+                smallest_distance = distance
+                closest_gt = gt_centre
+        
+        distance_sum += smallest_distance
+        
+        # Remove corresponding ground truth centre so it is not considered by any other estimated centres
+        ground_truth_centres.remove(closest_gt)
+
+        # Show the error
+        print('Error (distance from ground truth) of estimated centre', est_centre, 'is:', smallest_distance)
+    
+    # Compute and show the mean error
+    mean_distance = distance_sum / len(estimated_centres)
+    print('Mean error (distance from ground truth):', mean_distance)
 
     ###################################
     '''
