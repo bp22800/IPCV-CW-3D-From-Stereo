@@ -501,7 +501,7 @@ if __name__ == '__main__':
 
     # Ground truth sphere centre point cloud (red)
     pcd_GT_cents = o3d.geometry.PointCloud()
-    pcd_GT_cents.points = o3d.utility.Vector3dVector(ground_truth_centres)
+    pcd_GT_cents.points = o3d.utility.Vector3dVector(np.array(ground_truth_centres))
     pcd_GT_cents.paint_uniform_color([1., 0., 0.])
 
     # Estimated sphere centre point cloud (green)
@@ -549,6 +549,37 @@ if __name__ == '__main__':
     '''
     ###################################
 
+    estimated_radii = []
+
+    # For each circle detected in reference image, get corresponding 3D estimated point
+    # and use perspective projection to calculate the radius of the sphere
+    for i, circle in enumerate(reference_circles):
+        point = estimated_centres[i]
+
+        # Bring 3D point into reference VC's coordinate space
+        point = np.append(point, [1])
+        point = np.matmul(H0_wc, point)
+
+        # Get pixel coords of sphere centre and pixel length of radius
+        x0 = circle[0]
+        y0 = circle[1]
+        r = circle[2]
+
+        # Get pixel coords of point on edge of circle vertically above centre in pixel image
+        x = x0
+        y = y0 - r
+        p_hat_L = np.array([x, y, f])
+
+        # Get image plane coords of point on edge of circle
+        p_L = np.matmul(M_L, p_hat_L)
+
+        # Get estimated radius of sphere
+        y = p_L[1]
+        Y = point[1]
+        Z = point[2]
+        estimated_radius = abs(((Z * y) / f) - Y)
+
+        estimated_radii.append(estimated_radius)
 
     ###################################
     '''
@@ -557,6 +588,75 @@ if __name__ == '__main__':
     Write your code here:
     '''
     ###################################
+
+    def getSphereMesh(centre, radius, colour):
+        # Create sphere with given radius
+        mesh = o3d.geometry.TriangleMesh.create_sphere(radius=radius)
+
+        # Create matrix H
+        x = centre[0]
+        y = centre[1]
+        z = centre[2]
+        H = np.array([
+            [1, 0, 0, x],
+            [0, 1, 0, y],
+            [0, 0, 1, z],
+            [0, 0, 0, 1]
+        ])
+
+        # Arrange sphere in the space using H
+        mesh.vertices = o3d.utility.Vector3dVector(
+            transform_points(np.asarray(mesh.vertices), H)
+        )
+
+        # Paint meshes in uniform colours
+        mesh.paint_uniform_color(colour)
+        mesh.compute_vertex_normals()
+        
+        return mesh
+
+    ground_truth_centres = np.array(GT_cents)[:,:3].tolist()
+
+    # Ground truth sphere centre point cloud (red)
+    pcd_GT_cents = o3d.geometry.PointCloud()
+    pcd_GT_cents.points = o3d.utility.Vector3dVector(np.array(ground_truth_centres))
+    pcd_GT_cents.paint_uniform_color([1., 0., 0.])
+
+    # Estimated sphere centre point cloud (green)
+    pcd_est_cents = o3d.geometry.PointCloud()
+    pcd_est_cents.points = o3d.utility.Vector3dVector(np.array(estimated_centres))
+    pcd_est_cents.paint_uniform_color([0., 1., 0.])
+
+    # Ground truth spheres
+    ground_truth_spheres = []
+    ground_truth_centres = np.array(GT_cents)[:,:3].tolist()
+    for i in range(len(ground_truth_centres)):
+        gt_centre = ground_truth_centres[i]
+        gt_radius = GT_rads[i]
+        colour = [1.0, 0.0, 0.0]
+        mesh = getSphereMesh(gt_centre, gt_radius, colour)
+        ground_truth_spheres.append(mesh)
+
+    # Estimated spheres
+    estimated_spheres = []
+    for i in range(len(estimated_centres)):
+        est_centre = estimated_centres[i]
+        est_radius = estimated_radii[i]
+        colour = [0.0, 1.0, 0.0]
+        mesh = getSphereMesh(est_centre, est_radius, colour)
+        estimated_spheres.append(mesh)
+
+    # Visualise both ground truth and estimated spheres
+    vis = o3d.visualization.Visualizer()
+    vis.create_window(width=640, height=480, left=0, top=0)
+    for m in [obj_meshes[0], pcd_GT_cents, pcd_est_cents]:
+        vis.add_geometry(m)
+    for m in ground_truth_spheres:
+        vis.add_geometry(m)
+    for m in estimated_spheres:
+        vis.add_geometry(m)
+    vis.run()
+    vis.destroy_window()
 
     ###################################
     '''
