@@ -540,6 +540,7 @@ if __name__ == '__main__':
     # Compute and show the mean error
     mean_distance = distance_sum / len(estimated_centres)
     print('Mean error (distance from ground truth):', mean_distance)
+    print()
 
     ###################################
     '''
@@ -589,7 +590,10 @@ if __name__ == '__main__':
     '''
     ###################################
 
-    def getSphereMesh(centre, radius, colour):
+    # Note: The spheres are visualised below with a line set (basically a wireframe) instead of a mesh, so that we can see through the spheres
+    # Note: Zoom closely to each sphere to see both the green and red spheres in full to compare them (from afar the wireframes can look like solid spheres)
+
+    def getSphereLineSet(centre, radius, colour):
         # Create sphere with given radius
         mesh = o3d.geometry.TriangleMesh.create_sphere(radius=radius)
 
@@ -609,54 +613,70 @@ if __name__ == '__main__':
             transform_points(np.asarray(mesh.vertices), H)
         )
 
-        # Paint meshes in uniform colours
-        mesh.paint_uniform_color(colour)
+        # Compute vertex normals
         mesh.compute_vertex_normals()
+
+        # Convert mesh into line set
+        line_set = o3d.geometry.LineSet.create_from_triangle_mesh(mesh)
+
+        # Paint lines in uniform colours
+        line_set.paint_uniform_color(colour)
         
-        return mesh
+        return line_set
 
-    ground_truth_centres = np.array(GT_cents)[:,:3].tolist()
-
-    # Ground truth sphere centre point cloud (red)
-    pcd_GT_cents = o3d.geometry.PointCloud()
-    pcd_GT_cents.points = o3d.utility.Vector3dVector(np.array(ground_truth_centres))
-    pcd_GT_cents.paint_uniform_color([1., 0., 0.])
-
-    # Estimated sphere centre point cloud (green)
-    pcd_est_cents = o3d.geometry.PointCloud()
-    pcd_est_cents.points = o3d.utility.Vector3dVector(np.array(estimated_centres))
-    pcd_est_cents.paint_uniform_color([0., 1., 0.])
-
-    # Ground truth spheres
+    # Ground truth spheres (red)
     ground_truth_spheres = []
     ground_truth_centres = np.array(GT_cents)[:,:3].tolist()
     for i in range(len(ground_truth_centres)):
         gt_centre = ground_truth_centres[i]
         gt_radius = GT_rads[i]
         colour = [1.0, 0.0, 0.0]
-        mesh = getSphereMesh(gt_centre, gt_radius, colour)
+        mesh = getSphereLineSet(gt_centre, gt_radius, colour)
         ground_truth_spheres.append(mesh)
 
-    # Estimated spheres
+    # Estimated spheres (green)
     estimated_spheres = []
     for i in range(len(estimated_centres)):
         est_centre = estimated_centres[i]
         est_radius = estimated_radii[i]
         colour = [0.0, 1.0, 0.0]
-        mesh = getSphereMesh(est_centre, est_radius, colour)
+        mesh = getSphereLineSet(est_centre, est_radius, colour)
         estimated_spheres.append(mesh)
 
     # Visualise both ground truth and estimated spheres
     vis = o3d.visualization.Visualizer()
     vis.create_window(width=640, height=480, left=0, top=0)
-    for m in [obj_meshes[0], pcd_GT_cents, pcd_est_cents]:
-        vis.add_geometry(m)
+    vis.add_geometry(obj_meshes[0])
     for m in ground_truth_spheres:
         vis.add_geometry(m)
     for m in estimated_spheres:
         vis.add_geometry(m)
     vis.run()
     vis.destroy_window()
+
+    # # Compute the errors (differences between estimated and ground truth radii)
+    # error_sum = 0
+    # for est_radius in estimated_radii:
+    #     # The closest ground truth centre is considered to correspond with the estimated centre
+    #     smallest_distance = float('inf')
+    #     closest_gt = None
+    #     for gt_centre in ground_truth_centres:
+    #         distance = math.sqrt(np.sum(np.square(est_centre - gt_centre)))
+    #         if distance < smallest_distance:
+    #             smallest_distance = distance
+    #             closest_gt = gt_centre
+        
+    #     error_sum += smallest_distance
+        
+    #     # Remove corresponding ground truth centre so it is not considered by any other estimated centres
+    #     ground_truth_centres.remove(closest_gt)
+
+    #     # Show the error
+    #     print('Error (distance from ground truth) of estimated radius', est_centre, 'is:', smallest_distance)
+    
+    # # Compute and show the mean error
+    # mean_error = error_sum / len(estimated_radii)
+    # print('Mean error (distance from ground truth):', mean_error)
 
     ###################################
     '''
