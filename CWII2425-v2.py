@@ -471,7 +471,8 @@ if __name__ == '__main__':
             
             image = cv2.imread('view0.png', 1)
             colour = (0, 255, 0)
-            cv2.circle(image, (x0, y0), 5, colour, -1)
+            thickness = 2
+            cv2.circle(image, (x0, y0), 7, colour, thickness)
             cv2.imwrite('view0.png', image)
         
         # Project 3D points onto viewing VC and draw points onto image
@@ -486,7 +487,8 @@ if __name__ == '__main__':
             
             image = cv2.imread('view1.png', 1)
             colour = (0, 255, 0)
-            cv2.circle(image, (x0, y0), 5, colour, -1)
+            thickness = 2
+            cv2.circle(image, (x0, y0), 7, colour, thickness)
             cv2.imwrite('view1.png', image)
 
     ###################################
@@ -529,7 +531,6 @@ if __name__ == '__main__':
     # Compute and show the mean error
     mean_distance = distance_sum / len(estimated_centres)
     print('Mean error:', mean_distance)
-    print()
 
 
     ground_truth_centres = np.array(GT_cents)[:,:3].tolist()
@@ -600,6 +601,8 @@ if __name__ == '__main__':
     '''
     ###################################
 
+    print()
+
     # Compute the errors (differences between estimated and ground truth radii)
     error_sum = 0
     for i, est_radius in enumerate(estimated_radii):
@@ -661,8 +664,8 @@ if __name__ == '__main__':
         gt_centre = ground_truth_centres[i]
         gt_radius = GT_rads[i]
         colour = [1.0, 0.0, 0.0]
-        mesh = getSphereLineSet(gt_centre, gt_radius, colour)
-        ground_truth_spheres.append(mesh)
+        line_set = getSphereLineSet(gt_centre, gt_radius, colour)
+        ground_truth_spheres.append(line_set)
 
     # Estimated spheres (green)
     estimated_spheres = []
@@ -670,8 +673,8 @@ if __name__ == '__main__':
         est_centre = estimated_centres[i]
         est_radius = estimated_radii[i]
         colour = [0.0, 1.0, 0.0]
-        mesh = getSphereLineSet(est_centre, est_radius, colour)
-        estimated_spheres.append(mesh)
+        line_set = getSphereLineSet(est_centre, est_radius, colour)
+        estimated_spheres.append(line_set)
 
     # Visualise both ground truth and estimated spheres
     vis = o3d.visualization.Visualizer()
@@ -686,8 +689,20 @@ if __name__ == '__main__':
 
     ###################################
     '''
-    Task 10: Investigate impact of noise added to relative pose
+    Task 10: Evaluate performance using different sphere sizes and separations
 
     Write your code here:
     '''
     ###################################
+
+    ...
+
+    ###################################
+    '''
+    Task 11: Investigate impact of noise added to relative pose
+
+    Write your code here:
+    '''
+    ###################################
+
+    ...
