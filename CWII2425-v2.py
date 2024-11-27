@@ -457,39 +457,6 @@ if __name__ == '__main__':
         point = np.matmul(H0_cw, P_hat)[:-1]
 
         estimated_centres.append(point)
-    
-    if show_on_image:
-        # Project 3D points onto reference VC and draw points onto image
-        for point in estimated_centres:
-            P_L = np.matmul(H0_wc, np.append(point, [1]))[:-1]
-            Z = P_L[2]
-            p_L = f * (P_L / Z)
-            p_hat_L = np.matmul(np.linalg.inv(M_L), p_L)
-
-            x0 = round(p_hat_L[0])
-            y0 = round(p_hat_L[1])
-            
-            image = cv2.imread('view0.png', 1)
-            colour = (0, 255, 0)
-            thickness = 2
-            cv2.circle(image, (x0, y0), 7, colour, thickness)
-            cv2.imwrite('view0.png', image)
-        
-        # Project 3D points onto viewing VC and draw points onto image
-        for point in estimated_centres:
-            P_R = np.matmul(H1_wc, np.append(point, [1]))[:-1]
-            Z = P_R[2]
-            p_R = f * (P_R / Z)
-            p_hat_R = np.matmul(np.linalg.inv(M_R), p_R)
-
-            x0 = round(p_hat_R[0])
-            y0 = round(p_hat_R[1])
-            
-            image = cv2.imread('view1.png', 1)
-            colour = (0, 255, 0)
-            thickness = 2
-            cv2.circle(image, (x0, y0), 7, colour, thickness)
-            cv2.imwrite('view1.png', image)
 
     ###################################
     '''
@@ -561,29 +528,31 @@ if __name__ == '__main__':
     '''
     ###################################
 
-    estimated_radii = []
+    # Method: For each matching circle pair in reference and viewing images, get corresponding 3D estimated point for the sphere
+    # and use perspective projection to calculate the radius of the sphere using the radius of the image circle
+    # (We obtain a radius estimate from both the reference and viewing images, so we take the average of both to get final radius estimate)
 
-    # For each circle detected in reference image, get corresponding 3D estimated point
-    # and use perspective projection to calculate the radius of the sphere
-    for i, circle in enumerate(reference_circles):
-        point = estimated_centres[i]
 
-        # Bring 3D point into reference VC's coordinate space
+    # Given a circle (x0, y0, r) from an image, a 3D point (x, y, z) for the sphere centre,
+    # a matrix H_wc (that takes points from world to camera coordinate space), and matrix M
+    # (that takes a pixel point to an image plane point), return an estimate for the radius of the sphere
+    def estimate_radius(circle, point, H_wc, M):
+        # Bring estimated 3D point into camera's coordinate space using matrix H
         point = np.append(point, [1])
-        point = np.matmul(H0_wc, point)
+        point = np.matmul(H_wc, point)
 
         # Get pixel coords of sphere centre and pixel length of radius
         x0 = circle[0]
         y0 = circle[1]
         r = circle[2]
 
-        # Get pixel coords of point on edge of circle vertically above centre in pixel image
+        # Get pixel coords of point on edge of circle vertically above circle centre in pixel image
         x = x0
         y = y0 - r
         p_hat_L = np.array([x, y, f])
 
         # Get image plane coords of point on edge of circle
-        p_L = np.matmul(M_L, p_hat_L)
+        p_L = np.matmul(M, p_hat_L)
 
         # Get estimated radius of sphere
         y = p_L[1]
@@ -591,6 +560,25 @@ if __name__ == '__main__':
         Z = point[2]
         estimated_radius = abs(((Z * y) / f) - Y)
 
+        return estimated_radius
+    
+
+    estimated_radii = []
+
+    for i, match in enumerate(circle_matches):
+        # Get estimated 3D point
+        point = estimated_centres[i]
+
+        # Estimate radius using circle in reference VC image
+        circle_ref = match[0]
+        estimated_radius_ref = estimate_radius(circle_ref, point, H0_wc, M_L)
+
+        # Estimate radius using circle in viewing VC image
+        circle_view = match[1]
+        estimated_radius_view = estimate_radius(circle_view, point, H1_wc, M_R)
+
+        # Get mean radius
+        estimated_radius = (estimated_radius_ref + estimated_radius_view) / 2
         estimated_radii.append(estimated_radius)
 
     ###################################
