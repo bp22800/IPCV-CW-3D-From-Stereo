@@ -1,4 +1,15 @@
 '''
+How to run the code:
+
+To run all tasks (note that you need to close each visualiser window that appears in order to continue the program):
+python CWII2425-v2.py
+
+To add random noise to relative pose of cameras:
+python CWII2425-v2.py --add-noise
+'''
+
+
+'''
 Department of Computer Science, University of Bristol
 COMS30030: Image Processing and Computer Vision
 
@@ -77,6 +88,7 @@ if __name__ == '__main__':
     parser.add_argument('--display_centre', dest='bCentre', action='store_true',
                         help='open up another visualiser to visualise centres')
     parser.add_argument('--coords', dest='bCoords', action='store_true')
+    parser.add_argument('--add-noise', dest='addNoise', action='store_true')
 
     args = parser.parse_args()
 
@@ -334,6 +346,10 @@ if __name__ == '__main__':
     R = cam_0_to_1[:-1,:-1]
     RT = -cam_0_to_1[:-1,3]
     T = np.matmul(np.linalg.inv(R), RT)
+
+    if args.addNoise:
+        T_noise = np.random.normal(0, 0.1, 3)
+        T = T + T_noise
 
     # Construct S matrix
     S = np.array([
@@ -683,7 +699,7 @@ if __name__ == '__main__':
     '''
     ###################################
 
-    ...
+    # Note: See report
 
     ###################################
     '''
@@ -693,4 +709,4 @@ if __name__ == '__main__':
     '''
     ###################################
 
-    ...
+    # Note: See code for adding random noise to pose above in Task 4 section, and see report for investigation
