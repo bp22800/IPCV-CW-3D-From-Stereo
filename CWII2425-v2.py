@@ -293,7 +293,6 @@ if __name__ == '__main__':
         min_dist = 10
         min_radius = 5
         max_radius = 100
-        # circles = cv2.HoughCircles(image_grey, cv2.HOUGH_GRADIENT, dp=1, minDist=min_dist, param1=50, param2=40, minRadius=min_radius, maxRadius=max_radius)[0,:]
         circles = cv2.HoughCircles(image_grey, cv2.HOUGH_GRADIENT_ALT, dp=1.5, minDist=min_dist, param1=300, param2=0.9, minRadius=min_radius, maxRadius=max_radius)[0,:]
 
         # Store circles for this image for later use
@@ -415,15 +414,6 @@ if __name__ == '__main__':
             if abs(value) < abs(best_value):
                 best_value = value
                 best_circle = circle2
-        
-        # Add coloured points to each image to show matchings
-        reference_image = cv2.imread('view0.png', 1)
-        viewing_image = cv2.imread('view1.png', 1)
-        colour = (random.randrange(256), random.randrange(256), random.randrange(256))
-        cv2.circle(reference_image, (round(circle1[0]), round(circle1[1])), 5, colour, -1)
-        cv2.circle(viewing_image, (round(best_circle[0]), round(best_circle[1])), 5, colour, -1)
-        cv2.imwrite('view0.png', reference_image)
-        cv2.imwrite('view1.png', viewing_image)
 
         # Save matching for later use
         circle_matches.append((circle1, best_circle))
@@ -699,7 +689,7 @@ if __name__ == '__main__':
     '''
     ###################################
 
-    # Note: See report
+    # Note: See report in Method section task 10
 
     ###################################
     '''
@@ -709,4 +699,4 @@ if __name__ == '__main__':
     '''
     ###################################
 
-    # Note: See code for adding random noise to pose above in Task 4 section, and see report for investigation
+    # Note: See code for adding random noise to pose above in Task 4 section, and see report in Method section task 11 for investigation
